@@ -216,7 +216,7 @@ async fn get_max_rowid(db_path: &std::path::Path) -> anyhow::Result<i64> {
                 [],
                 |row| row.get(0),
             )
-            .unwrap_or(0);
+            ?;
         Ok(rowid)
     })
     .await?
