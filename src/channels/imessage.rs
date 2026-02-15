@@ -141,7 +141,13 @@ end tell"#
         }
 
         // Track the last ROWID we've seen
-        let mut last_rowid = get_max_rowid(&db_path).await.unwrap_or(0);
+        let mut last_rowid = match get_max_rowid(&db_path).await {
+            Ok(id) => id,
+            Err(e) => {
+                tracing::warn!("Failed to read initial max ROWID, starting from 0: {e}");
+                0
+            }
+        };
 
         loop {
             tokio::time::sleep(tokio::time::Duration::from_secs(self.poll_interval_secs)).await;
@@ -249,8 +255,8 @@ async fn fetch_new_messages(
         let rows = stmt.query_map([since_rowid], |row| {
             Ok((row.get(0)?, row.get(1)?, row.get(2)?))
         })?;
-        rows.collect::<Result<Vec<_>, _>>()
-            .map_err(Into::into)
+        let results = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+        Ok(results)
     })
     .await??;
 
